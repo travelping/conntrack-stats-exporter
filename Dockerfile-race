@@ -2,13 +2,14 @@ FROM	golang:1.20.2 as build
 WORKDIR	/conntrack-stats-exporter
 COPY	go.mod go.sum ./
 RUN	go mod download
-COPY	. .
+COPY	*.go ./
+COPY	exporter exporter
 RUN	go mod verify
-RUN	./build.sh
+RUN	go test --race ./...
+RUN	go build --race -o conntrack-stats-exporter
 
-FROM	alpine:3.17.2
+FROM	debian:stable-slim
+RUN	apt-get update
+RUN	apt-get -qy install conntrack iproute2
 COPY	--from=build /conntrack-stats-exporter/conntrack-stats-exporter /usr/local/sbin/
-RUN	apk update && \
-	apk --no-cache upgrade && \
-	apk --no-cache add conntrack-tools
 ENTRYPOINT	[ "/usr/local/sbin/conntrack-stats-exporter" ]

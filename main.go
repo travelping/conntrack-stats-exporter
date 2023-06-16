@@ -17,48 +17,87 @@
 package main
 
 import (
-	"flag"
+	"context"
+	"errors"
+	"fmt"
 	"net/http"
 	"os"
+	"os/signal"
+	"runtime"
 	"runtime/debug"
-
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"sync"
+	"syscall"
 
 	"github.com/jwkohnen/conntrack-stats-exporter/exporter"
 )
 
 func main() {
+	// Set Go max procs to 1 even if number of (logical) CPUs is > 1.  This is a low performance program that might run
+	// in an environment with very limited CPU resources via cgroups (e.g. Kubernetes resource limit).  GOMAXPROCS of 1
+	// prevents the Go scheduler from using too much scheduler overhead in such environments.
+	//
+	// Usually I'd use go.uber.org/automaxprocs/maxprocs, but hard coding 1 is a better solution than having another
+	// dependency.
+	_ = runtime.GOMAXPROCS(1)
+
 	if os.Getenv("GOGC") == "" {
 		// Reduce memory overhead. This is a low performance program;
 		// the CPU penalty is negligible.
 		debug.SetGCPercent(10)
 	}
 
-	addr := ":9371"
-	path := "/metrics"
-	flag.StringVar(&path, "path", path, "metrics endpoint path")
-	flag.StringVar(&addr, "addr", addr, "TCP address to listen on")
-	flag.Parse()
-
-	reg := prometheus.NewRegistry()
-	reg.MustRegister(exporter.New())
+	cfg, opts := configure()
 
 	mux := http.NewServeMux()
-	mux.Handle(
-		path,
-		newAbortHandler(
-			promhttp.HandlerFor(reg, promhttp.HandlerOpts{}),
-		),
-	)
+	mux.Handle(cfg.path, newAbortHandler(exporter.Handler(opts...)))
 
 	srv := &http.Server{
-		Addr:         addr,
+		Addr:         cfg.addr,
 		Handler:      mux,
-		ReadTimeout:  3e9,
-		WriteTimeout: 3e9,
+		ReadTimeout:  cfg.timeoutHTTP,
+		WriteTimeout: cfg.timeoutHTTP,
 	}
+
+	shutdown := make(chan os.Signal, 1)
+
+	var (
+		receivedSignal os.Signal
+		wg             sync.WaitGroup
+	)
+
+	wg.Add(1)
+
+	go func() {
+		defer wg.Done()
+
+		// Sadly Kubernetes sends SIGTERM, not SIGINT.  CTRL+C on a TTY sends SIGINT.
+		signal.Notify(shutdown, os.Interrupt)
+		signal.Notify(shutdown, syscall.SIGTERM)
+
+		receivedSignal = <-shutdown
+
+		signal.Stop(shutdown)
+
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), cfg.timeoutShutdown)
+		defer cancel()
+
+		if err := srv.Shutdown(shutdownCtx); err != nil {
+			abort(fmt.Errorf("error shutting down server: %w", err))
+		}
+	}()
+
+	cfg.logf("listening on %s with endpoint %q\n", cfg.addr, cfg.path)
+
 	err := srv.ListenAndServe()
+
+	wg.Wait()
+
+	if errors.Is(err, http.ErrServerClosed) {
+		const signaledExitCodeBase = 128
+
+		os.Exit(signaledExitCodeBase + int(receivedSignal.(syscall.Signal)))
+	}
+
 	if err != nil {
 		abort(err)
 	}
