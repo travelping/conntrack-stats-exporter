@@ -3,13 +3,13 @@ name: Push to Registry
 on:
   push:
     branches:
-      - 'main'
+      - 'master'
     tags:
       - '*'
 
 jobs:
   docker:
-    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')
+    if: github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/')
     name: Push Docker Image
     runs-on: ubuntu-20.04
     steps:
@@ -30,9 +30,9 @@ jobs:
         uses: docker/metadata-action@v4
         with:
           images: |
-            jwkohnen/conntrack-stats-exporter
+            travelping/conntrack-stats-exporter
           tags: |
-            type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', 'main') }}
+            type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
             type=ref,event=tag
             type=semver,pattern=v{{version}}
             type=semver,pattern=v{{major}}.{{minor}}

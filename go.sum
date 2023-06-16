@@ -1,3 +1,5 @@
+github.com/containernetworking/plugins v1.3.0 h1:QVNXMT6XloyMUoO2wUOqWTC1hWFV62Q6mVDp5H1HnjM=
+github.com/containernetworking/plugins v1.3.0/go.mod h1:Pc2wcedTQQCVuROOOaLBPPxrEXqqXBFt3cZ+/yVg6l0=
 github.com/vishvananda/netns v0.0.0-20220913150850-18c4f4234207 h1:nn7SOQy8xCu3iXNv7oiBhhEQtbWdnEOMnuKBlHvrqIM=
 github.com/vishvananda/netns v0.0.0-20220913150850-18c4f4234207/go.mod h1:DD4vA1DwXk04H54A1oHXtwZmA0grkVMdPxx/VGLCah0=
 github.com/vishvananda/netns v0.0.4 h1:Oeaw1EM2JMxD51g9uhtC0D7erkIjgmj8+JZc26m1YX8=
@@ -9,3 +11,5 @@ golang.org/x/sys v0.5.0 h1:MUK/U/4lj1t1oPg0HfuXDN/Z1wv31ZJ/YcPiGccS4DU=
 golang.org/x/sys v0.5.0/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
 golang.org/x/sys v0.6.0 h1:MVltZSvRTcU2ljQOhs94SXPftV6DCNnZViHeQps87pQ=
 golang.org/x/sys v0.6.0/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
+golang.org/x/sys v0.7.0 h1:3jlCCIQZPdOYu1h8BkNvLz8Kgwtae2cagcG/VamtZRU=
+golang.org/x/sys v0.7.0/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
